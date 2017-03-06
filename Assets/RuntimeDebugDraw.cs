@@ -17,6 +17,7 @@ using Conditional = System.Diagnostics.ConditionalAttribute;
  *				by the post processor.
  *			d.	`GetDebugDrawCamera()` will be called to get the camera for line drawings and text coordinate calcuation.
  *				It defaults to `Camera.main`, returning null will mute drawings.
+ *			e.	`DrawTextDefaultSize`/`DrawDefaultColor` styling variables, defaults as Unity Debug.Draw.
  *	2.	Performance should be relatively ok for debugging,  but it's never intended for release use. You should use conditional to
  *		compile away these calls anyway. Additionally DrawText is implemented with OnGUI, which costs a lot on mobile devices.
  *	3.	Don't rename this file of 'RuntimeDebugDraw' or this won't work. This file contains a MonoBehavior also named 'RuntimeDebugDraw' and Unity needs this file
@@ -102,8 +103,6 @@ namespace RuntimeDebugDraw
 			_rtDraw.RegisterText(pos, text, color, size, duration, popUp);
 			return;
 		}
-
-		//	TODO attach texts, which is easier to use
 		#endregion
 
 		#region Overloads
