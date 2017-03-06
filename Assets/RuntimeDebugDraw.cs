@@ -1,20 +1,22 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections.Generic;
-using Conditional = System.Diagnostics.ConditionalAttribute;
-using System;
+using UnityEngine;
 using RuntimeDebugDraw.Internal;
+using Conditional = System.Diagnostics.ConditionalAttribute;
 
 /*
  *	Runtime Debug Draw
  *	Single file debuging DrawLine/DrawText/etc that works in both Scene/Game view, also works in built PC/mobile builds.
  *	
  *	Very Important Notes:
- *	1.	You should consider rename things listed when intergrating this into you projects.
+ *	1.	You are expected to make some changes in this file before intergrating this into you projects.
  *			a.	`_DEBUG` symbol, you should this to your project's debugging symbol so these draw calls will be compiled away in final release builds.
  *				If you forget to do this, DrawXXX calls won't be shown.
  *			b.	`RuntimeDebugDraw` namespace and `Draw` class name, you can change this into your project's namespace to make it more accessable.
  *			c.	`Draw.DrawLineLayer` is the layer the lines will be drawn on. If you have camera postprocessing turned on, set this to a layer that is ignored
  *				by the post processor.
+ *			d.	`GetDebugDrawCamera()` will be called to get the camera for line drawings and text coordinate calcuation.
+ *				It defaults to `Camera.main`, returning null will mute drawings.
  *	2.	Performance should be relatively ok for debugging,  but it's never intended for release use. You should use conditional to
  *		compile away these calls anyway. Additionally DrawText is implemented with OnGUI, which costs a lot on mobile devices.
  *	3.	Don't rename this file of 'RuntimeDebugDraw' or this won't work. This file contains a MonoBehavior also named 'RuntimeDebugDraw' and Unity needs this file
@@ -27,6 +29,21 @@ namespace RuntimeDebugDraw
 {
 	public static class Draw
 	{
+		#region Main Functions
+		/// <summary>
+		/// Which layer the lines will be drawn on.
+		/// </summary>
+		public const int DrawLineLayer = 4;
+
+		/// <summary>
+		///	Which camera to use for line drawing and texts coordinate calculation.
+		/// </summary>
+		/// <returns>Camera to debug draw on, returns null will mute debug drawing.</returns>
+		public static Camera GetDebugDrawCamera()
+		{
+			return Camera.main;
+		}
+
 		/// <summary>
 		///	Draw a line from <paramref name="start"/> to <paramref name="end"/> with <paramref name="color"/>.
 		/// </summary>
@@ -44,9 +61,20 @@ namespace RuntimeDebugDraw
 		}
 
 		/// <summary>
-		/// Which layer the lines will be drawn on.
+		/// Draws a line from start to start + dir in world coordinates.
 		/// </summary>
-		public const int DrawLineLayer = 4;
+		/// <param name="start">Point in world space where the ray should start.</param>
+		/// <param name="dir">Direction and length of the ray.</param>
+		/// <param name="color">Color of the drawn line.</param>
+		/// <param name="duration">How long the line will be visible for (in seconds).</param>
+		/// <param name="depthTest">Should the line be obscured by other objects closer to the camera?</param>
+		[Conditional("_DEBUG")]
+		public static void DrawRay(Vector3 start, Vector3 dir, Color color, float duration, bool depthTest)
+		{
+			CheckAndBuildHiddenRTDrawObject();
+			_rtDraw.RegisterLine(start, start + dir, color, duration, !depthTest);
+			return;
+		}
 
 		/// <summary>
 		/// Draw a text at given position.
@@ -62,6 +90,90 @@ namespace RuntimeDebugDraw
 			_rtDraw.RegisterText(pos, text, color, size, duration, popUp);
 			return;
 		}
+
+
+		//	TODO attach texts, which is easier to use
+		#endregion
+
+		#region Overloads
+		/// <summary>
+		///	Draw a line from <paramref name="start"/> to <paramref name="end"/> with <paramref name="color"/>.
+		/// </summary>
+		/// <param name="start">Point in world space where the line should start.</param>
+		/// <param name="end">Point in world space where the line should end.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawLine(Vector3 start, Vector3 end)
+		{
+			DrawLine(start, end, Color.white, 0f, true);
+			return;
+		}
+
+		/// <summary>
+		///	Draw a line from <paramref name="start"/> to <paramref name="end"/> with <paramref name="color"/>.
+		/// </summary>
+		/// <param name="start">Point in world space where the line should start.</param>
+		/// <param name="end">Point in world space where the line should end.</param>
+		/// <param name="color">Color of the line.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawLine(Vector3 start, Vector3 end, Color color)
+		{
+			DrawLine(start, end, color, 0f, true);
+			return;
+		}
+
+		/// <summary>
+		///	Draw a line from <paramref name="start"/> to <paramref name="end"/> with <paramref name="color"/>.
+		/// </summary>
+		/// <param name="start">Point in world space where the line should start.</param>
+		/// <param name="end">Point in world space where the line should end.</param>
+		/// <param name="color">Color of the line.</param>
+		/// <param name="duration">How long the line should be visible for.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawLine(Vector3 start, Vector3 end, Color color, float duration)
+		{
+			DrawLine(start, end, color, duration, true);
+			return;
+		}
+
+		/// <summary>
+		/// Draws a line from start to start + dir in world coordinates.
+		/// </summary>
+		/// <param name="start">Point in world space where the ray should start.</param>
+		/// <param name="dir">Direction and length of the ray.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawRay(Vector3 start, Vector3 dir)
+		{
+			DrawRay(start, dir, Color.white, 0f, true);
+			return;
+		}
+
+		/// <summary>
+		/// Draws a line from start to start + dir in world coordinates.
+		/// </summary>
+		/// <param name="start">Point in world space where the ray should start.</param>
+		/// <param name="dir">Direction and length of the ray.</param>
+		/// <param name="color">Color of the drawn line.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawRay(Vector3 start, Vector3 dir, Color color)
+		{
+			DrawRay(start, dir, color, 0f, true);
+			return;
+		}
+
+		/// <summary>
+		/// Draws a line from start to start + dir in world coordinates.
+		/// </summary>
+		/// <param name="start">Point in world space where the ray should start.</param>
+		/// <param name="dir">Direction and length of the ray.</param>
+		/// <param name="color">Color of the drawn line.</param>
+		/// <param name="duration">How long the line will be visible for (in seconds).</param>
+		[Conditional("_DEBUG")]
+		public static void DrawRay(Vector3 start, Vector3 dir, Color color, float duration)
+		{
+			DrawRay(start, dir, color, duration, true);
+			return;
+		}
+		#endregion
 
 		#region Internal
 		/// <summary>
@@ -92,6 +204,7 @@ namespace RuntimeDebugDraw
 		#endregion
 	}
 
+	#region Editor
 #if UNITY_EDITOR
 	[UnityEditor.InitializeOnLoad]
 	public static class DrawEditor
@@ -114,6 +227,7 @@ namespace RuntimeDebugDraw
 		}
 	}
 #endif
+	#endregion
 }
 
 namespace RuntimeDebugDraw.Internal
@@ -431,8 +545,9 @@ namespace RuntimeDebugDraw.Internal
 				if (!entry.occupied)
 					continue;
 
-				if (Camera.main != null)
-					GUIDrawTextEntry(Camera.main, entry);
+				var camera = Draw.GetDebugDrawCamera();
+				if (camera != null)
+					GUIDrawTextEntry(camera, entry);
 
 				entry.flag |= DrawTextEntry.DrawFlag.DrawnGUI;
 			}
@@ -463,7 +578,7 @@ namespace RuntimeDebugDraw.Internal
 #if UNITY_EDITOR
 		private void DrawTextOnDrawGizmos()
 		{
-			if (!(Camera.current == Camera.main
+			if (!(Camera.current == Draw.GetDebugDrawCamera()
 				|| Camera.current == UnityEditor.SceneView.lastActiveSceneView.camera))
 				return;
 

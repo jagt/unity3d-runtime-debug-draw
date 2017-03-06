@@ -4,15 +4,15 @@ Single file debuging DrawLine/DrawText/etc that works in both Scene/Game view, a
 
 ![screenshot](Misc/screenshot.gif)
 
-# Usage
+## Usage
 
 Download [RuntimeDebugDraw](Assets/RuntimeDebugDraw.cs) and drop it into your project and you're done. Remember to read the header comments or it might work as intended.
 
-# License
+## License
 
 Public Domain
 
-# TODOs/Bugs/Known Issues
+## TODOs/Bugs/Known Issues
 
 * Only tested on Unity 5.3 for now.
 * Performance has room for improvement.
