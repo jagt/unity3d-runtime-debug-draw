@@ -36,6 +36,16 @@ namespace RuntimeDebugDraw
 		public const int DrawLineLayer = 4;
 
 		/// <summary>
+		/// Default font size for DrawText.
+		/// </summary>
+		public const int DrawTextDefaultSize = 12;
+
+		/// <summary>
+		/// Default color for Draws.
+		/// </summary>
+		public static Color DrawDefaultColor = Color.white;
+
+		/// <summary>
 		///	Which camera to use for line drawing and texts coordinate calculation.
 		/// </summary>
 		/// <returns>Camera to debug draw on, returns null will mute debug drawing.</returns>
@@ -81,6 +91,8 @@ namespace RuntimeDebugDraw
 		/// </summary>
 		/// <param name="pos">Position</param>
 		/// <param name="text">String of the text.</param>
+		/// <param name="color">Color for the text.</param>
+		/// <param name="size">Font size for the text.</param>
 		/// <param name="duration">How long the text should be visible for.</param>
 		/// <param name="popUp">Set to true to let the text moving up, so multiple texts at the same position can be visible.</param>
 		[Conditional("_DEBUG")]
@@ -91,11 +103,14 @@ namespace RuntimeDebugDraw
 			return;
 		}
 
-
 		//	TODO attach texts, which is easier to use
 		#endregion
 
 		#region Overloads
+		/*
+		 *	These are tons of overloads following how 'Debug.DrawXXX' are overloaded.
+		 */
+
 		/// <summary>
 		///	Draw a line from <paramref name="start"/> to <paramref name="end"/> with <paramref name="color"/>.
 		/// </summary>
@@ -104,7 +119,7 @@ namespace RuntimeDebugDraw
 		[Conditional("_DEBUG")]
 		public static void DrawLine(Vector3 start, Vector3 end)
 		{
-			DrawLine(start, end, Color.white, 0f, true);
+			DrawLine(start, end, DrawDefaultColor, 0f, true);
 			return;
 		}
 
@@ -143,7 +158,7 @@ namespace RuntimeDebugDraw
 		[Conditional("_DEBUG")]
 		public static void DrawRay(Vector3 start, Vector3 dir)
 		{
-			DrawRay(start, dir, Color.white, 0f, true);
+			DrawRay(start, dir, DrawDefaultColor, 0f, true);
 			return;
 		}
 
@@ -171,6 +186,60 @@ namespace RuntimeDebugDraw
 		public static void DrawRay(Vector3 start, Vector3 dir, Color color, float duration)
 		{
 			DrawRay(start, dir, color, duration, true);
+			return;
+		}
+
+		/// <summary>
+		/// Draw a text at given position.
+		/// </summary>
+		/// <param name="pos">Position</param>
+		/// <param name="text">String of the text.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawText(Vector3 pos, string text)
+		{
+			DrawText(pos, text, DrawDefaultColor, DrawTextDefaultSize, 0f, false);
+			return;
+		}
+
+		/// <summary>
+		/// Draw a text at given position.
+		/// </summary>
+		/// <param name="pos">Position</param>
+		/// <param name="text">String of the text.</param>
+		/// <param name="color">Color for the text.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawText(Vector3 pos, string text, Color color)
+		{
+			DrawText(pos, text, color, DrawTextDefaultSize, 0f, false);
+			return;
+		}
+
+		/// <summary>
+		/// Draw a text at given position.
+		/// </summary>
+		/// <param name="pos">Position</param>
+		/// <param name="text">String of the text.</param>
+		/// <param name="color">Color for the text.</param>
+		/// <param name="size">Font size for the text.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawText(Vector3 pos, string text, Color color, int size)
+		{
+			DrawText(pos, text, color, size, 0f, false);
+			return;
+		}
+
+		/// <summary>
+		/// Draw a text at given position.
+		/// </summary>
+		/// <param name="pos">Position</param>
+		/// <param name="text">String of the text.</param>
+		/// <param name="color">Color for the text.</param>
+		/// <param name="size">Font size for the text.</param>
+		/// <param name="duration">How long the text should be visible for.</param>
+		[Conditional("_DEBUG")]
+		public static void DrawText(Vector3 pos, string text, Color color, int size, float duration)
+		{
+			DrawText(pos, text, color, size, duration, false);
 			return;
 		}
 		#endregion
