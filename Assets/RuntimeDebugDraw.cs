@@ -109,6 +109,7 @@ namespace RuntimeDebugDraw
 		/// </summary>
 		/// <param name="transform">Target transform to attach text to.</param>
 		/// <param name="strFunc">Function will be called on every frame to get a string as attached text. </param>
+		/// <param name="offset">Text attach offset to transform position.</param>
 		/// <param name="color">Color for the text.</param>
 		/// <param name="size">Font size for the text.</param>
 		[Conditional("_DEBUG")]
@@ -255,6 +256,45 @@ namespace RuntimeDebugDraw
 		public static void DrawText(Vector3 pos, string text, Color color, int size, float duration)
 		{
 			DrawText(pos, text, color, size, duration, false);
+			return;
+		}
+
+		/// <summary>
+		/// Attach text to a transform.
+		/// </summary>
+		/// <param name="transform">Target transform to attach text to.</param>
+		/// <param name="strFunc">Function will be called on every frame to get a string as attached text. </param>
+		[Conditional("_DEBUG")]
+		public static void AttachText(Transform transform, Func<string> strFunc)
+		{
+			AttachText(transform, strFunc, Vector3.zero, DrawDefaultColor, DrawTextDefaultSize);
+			return;
+		}
+
+		/// <summary>
+		/// Attach text to a transform.
+		/// </summary>
+		/// <param name="transform">Target transform to attach text to.</param>
+		/// <param name="strFunc">Function will be called on every frame to get a string as attached text. </param>
+		/// <param name="offset">Text attach offset to transform position.</param>
+		[Conditional("_DEBUG")]
+		public static void AttachText(Transform transform, Func<string> strFunc, Vector3 offset)
+		{
+			AttachText(transform, strFunc, offset, DrawDefaultColor, DrawTextDefaultSize);
+			return;
+		}
+
+		/// <summary>
+		/// Attach text to a transform.
+		/// </summary>
+		/// <param name="transform">Target transform to attach text to.</param>
+		/// <param name="strFunc">Function will be called on every frame to get a string as attached text. </param>
+		/// <param name="offset">Text attach offset to transform position.</param>
+		/// <param name="color">Color for the text.</param>
+		[Conditional("_DEBUG")]
+		public static void AttachText(Transform transform, Func<string> strFunc, Vector3 offset, Color color)
+		{
+			AttachText(transform, strFunc, offset, color, DrawTextDefaultSize);
 			return;
 		}
 		#endregion
