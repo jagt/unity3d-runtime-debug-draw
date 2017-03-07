@@ -11,7 +11,7 @@ Single file debuging DrawLine/DrawText/etc that works in both Scene/Game view, a
 * Good old single file library.
 * Calls can be easily compiled away in release builds.
 
-## Usage
+## Install
 
 Download [RuntimeDebugDraw](Assets/RuntimeDebugDraw.cs) and drop it into your project and you're done. Remember to read the header comments or it might work as intended.
 

@@ -31,6 +31,8 @@ public class ExampleScript : MonoBehaviour
 		_timer = _bornRadianOffset;
 		_bornRadianOffset += Mathf.PI * 0.3f;
 
+		Draw.AttachText(transform, () => transform.position.y.ToString(), Vector3.up, Color.white, 12);
+
 		return;
 	}
 

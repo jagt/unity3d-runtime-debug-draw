@@ -100,7 +100,23 @@ namespace RuntimeDebugDraw
 		public static void DrawText(Vector3 pos, string text, Color color, int size, float duration, bool popUp)
 		{
 			CheckAndBuildHiddenRTDrawObject();
-			_rtDraw.RegisterText(pos, text, color, size, duration, popUp);
+			_rtDraw.RegisterDrawText(pos, text, color, size, duration, popUp);
+			return;
+		}
+
+		/// <summary>
+		/// Attach text to a transform.
+		/// </summary>
+		/// <param name="transform">Target transform to attach text to.</param>
+		/// <param name="strFunc">Function will be called on every frame to get a string as attached text. </param>
+		/// <param name="color">Color for the text.</param>
+		/// <param name="size">Font size for the text.</param>
+		[Conditional("_DEBUG")]
+		public static void AttachText(Transform transform, Func<string> strFunc, Vector3 offset, Color color, int size)
+		{
+			CheckAndBuildHiddenRTDrawObject();
+			_rtDraw.RegisterAttachText(transform, strFunc, offset, color, size);
+
 			return;
 		}
 		#endregion
@@ -311,9 +327,8 @@ namespace RuntimeDebugDraw.Internal
 
 			_textStyle = new GUIStyle();
 			_textStyle.alignment = TextAnchor.UpperLeft;
-			_textEntries = new List<DrawTextEntry>(16);
-
-			Debug.Log("awka");
+			_drawTextEntries = new List<DrawTextEntry>(16);
+			_attachTextEntries = new List<AttachTextEntry>(16);
 
 			return;
 		}
@@ -334,7 +349,6 @@ namespace RuntimeDebugDraw.Internal
 		}
 #endif
 
-		//	is this late enough?
 		public void LateUpdate()
 		{
 			TickAndDrawLines();
@@ -519,17 +533,17 @@ namespace RuntimeDebugDraw.Internal
 		#endregion
 
 		#region Draw Text
+		[Flags]
+		public enum DrawFlag : byte
+		{
+			None		= 0,
+			DrawnGizmo	= 1 << 0,
+			DrawnGUI	= 1 << 1,
+			DrawnAll	= DrawnGizmo | DrawnGUI
+		}
+
 		private class DrawTextEntry
 		{
-			[Flags]
-			public enum DrawFlag : byte
-			{
-				None		= 0,
-				DrawnGizmo	= 1 << 0,
-				DrawnGUI	= 1 << 1,
-				DrawnAll	= DrawnGizmo | DrawnGUI
-			}
-
 			public bool occupied;
 			public GUIContent content;
 			public Vector3 anchor;
@@ -550,24 +564,46 @@ namespace RuntimeDebugDraw.Internal
 			}
 		}
 
-		private List<DrawTextEntry> _textEntries;
+		private class AttachTextEntry
+		{
+			public bool occupied;
+			public GUIContent content;
+			public Vector3 offset;
+			public int size;
+			public Color color;
+
+
+			public Transform transform;
+			public Func<string> strFunc;
+
+			public DrawFlag flag = DrawFlag.None;
+
+			public AttachTextEntry()
+			{
+				content = new GUIContent();
+				return;
+			}
+		}
+
+		private List<DrawTextEntry> _drawTextEntries;
+		private List<AttachTextEntry> _attachTextEntries;
 		private GUIStyle _textStyle;
 
-		public void RegisterText(Vector3 anchor, string text, Color color, int size, float timer, bool popUp)
+		public void RegisterDrawText(Vector3 anchor, string text, Color color, int size, float timer, bool popUp)
 		{
 			DrawTextEntry entry = null;
-			for (int ix = 0; ix < _textEntries.Count; ix++)
+			for (int ix = 0; ix < _drawTextEntries.Count; ix++)
 			{
-				if (!_textEntries[ix].occupied)
+				if (!_drawTextEntries[ix].occupied)
 				{
-					entry = _textEntries[ix];
+					entry = _drawTextEntries[ix];
 					break;
 				}
 			}
 			if (entry == null)
 			{
 				entry = new DrawTextEntry();
-				_textEntries.Add(entry);
+				_drawTextEntries.Add(entry);
 			}
 
 			entry.occupied = true;
@@ -578,10 +614,45 @@ namespace RuntimeDebugDraw.Internal
 			entry.duration = entry.timer = timer;
 			entry.popUp = popUp;
 #if UNITY_EDITOR
-			entry.flag = DrawTextEntry.DrawFlag.None;
+			entry.flag = DrawFlag.None;
 #else
 			//	in builds consider gizmo is already drawn
-			entry.flag = DrawTextEntry.DrawFlag.DrawnGizmo;
+			entry.flag = DrawFlag.DrawnGizmo;
+#endif
+
+			return;
+		}
+
+		public void RegisterAttachText(Transform target, Func<string> strFunc, Vector3 offset, Color color, int size)
+		{
+			AttachTextEntry entry = null;
+			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
+			{
+				if (!_attachTextEntries[ix].occupied)
+				{
+					entry = _attachTextEntries[ix];
+					break;
+				}
+			}
+			if (entry == null)
+			{
+				entry = new AttachTextEntry();
+				_attachTextEntries.Add(entry);
+			}
+
+			entry.occupied = true;
+			entry.offset = offset;
+			entry.transform = target;
+			entry.strFunc = strFunc;
+			entry.color = color;
+			entry.size = size;
+			//	get first text
+			entry.content.text = strFunc();
+#if UNITY_EDITOR
+			entry.flag = DrawFlag.None;
+#else
+			//	in builds consider gizmo is already drawn
+			entry.flag = DrawFlag.DrawnGizmo;
 #endif
 
 			return;
@@ -589,35 +660,74 @@ namespace RuntimeDebugDraw.Internal
 
 		private void TickTexts()
 		{
-			for (int ix = 0; ix < _textEntries.Count; ix++)
+			for (int ix = 0; ix < _drawTextEntries.Count; ix++)
 			{
-				var entry = _textEntries[ix];
+				var entry = _drawTextEntries[ix];
 				if (!entry.occupied)
 					continue;
 				entry.timer -= Time.deltaTime;
-				if (entry.timer < 0
-					&& entry.flag == DrawTextEntry.DrawFlag.DrawnAll)
+				if (entry.flag == DrawFlag.DrawnAll)
 				{
-					entry.occupied = false;
+					if (entry.timer < 0)
+					{
+						entry.occupied = false;
+					}
+					//	actually no need to tick DrawFlag as it won't move
 				}
 			}
+
+			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
+			{
+				var entry = _attachTextEntries[ix];
+				if (!entry.occupied)
+					continue;
+				if (entry.transform == null)
+				{
+					entry.occupied = false;
+					entry.strFunc = null;	// needs to release ref to callback
+				}
+				else if (entry.flag == DrawFlag.DrawnAll)
+				{
+					// tick content
+					entry.content.text = entry.strFunc();
+					// tick flag
+#if UNITY_EDITOR
+					entry.flag = DrawFlag.None;
+#else
+					//	in builds consider gizmo is already drawn
+					entry.flag = DrawFlag.DrawnGizmo;
+#endif
+				}
+			}
+
 
 			return;
 		}
 
 		private void DrawTextOnGUI()
 		{
-			for (int ix = 0; ix < _textEntries.Count; ix++)
+			var camera = Draw.GetDebugDrawCamera();
+			if (camera == null)
+				return;
+
+			for (int ix = 0; ix < _drawTextEntries.Count; ix++)
 			{
-				var entry = _textEntries[ix];
+				var entry = _drawTextEntries[ix];
 				if (!entry.occupied)
 					continue;
 
-				var camera = Draw.GetDebugDrawCamera();
-				if (camera != null)
-					GUIDrawTextEntry(camera, entry);
+				GUIDrawTextEntry(camera, entry);
+				entry.flag |= DrawFlag.DrawnGUI;
+			}
 
-				entry.flag |= DrawTextEntry.DrawFlag.DrawnGUI;
+			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
+			{
+				var entry = _attachTextEntries[ix];
+				if (!entry.occupied)
+					continue;
+
+				GUIAttachTextEntry(camera, entry);
+				entry.flag |= DrawFlag.DrawnGUI;
 			}
 
 			return;
@@ -643,6 +753,24 @@ namespace RuntimeDebugDraw.Internal
 			return;
 		}
 
+		private void GUIAttachTextEntry(Camera camera, AttachTextEntry entry)
+		{
+			if (entry.transform == null)
+				return;
+
+			Vector3 worldPos = entry.transform.position + entry.offset;
+			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
+			screenPos.y = Screen.height - screenPos.y;
+
+			_textStyle.normal.textColor = entry.color;
+			_textStyle.fontSize = entry.size;
+			Rect rect = new Rect(screenPos, _textStyle.CalcSize(entry.content));
+			GUI.Label(rect, entry.content, _textStyle);
+
+			return;
+		}
+
+
 #if UNITY_EDITOR
 		private void DrawTextOnDrawGizmos()
 		{
@@ -650,16 +778,31 @@ namespace RuntimeDebugDraw.Internal
 				|| Camera.current == UnityEditor.SceneView.lastActiveSceneView.camera))
 				return;
 
+			var camera = Camera.current;
+			if (camera == null)
+				return;
+
 			UnityEditor.Handles.BeginGUI();
-			for (int ix = 0; ix < _textEntries.Count; ix++)
+			for (int ix = 0; ix < _drawTextEntries.Count; ix++)
 			{
-				var entry = _textEntries[ix];
+				var entry = _drawTextEntries[ix];
 				if (!entry.occupied)
 					continue;
 
-				GUIDrawTextEntry(Camera.current, entry);
-				entry.flag |= DrawTextEntry.DrawFlag.DrawnGizmo;
+				GUIDrawTextEntry(camera, entry);
+				entry.flag |= DrawFlag.DrawnGizmo;
 			}
+
+			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
+			{
+				var entry = _attachTextEntries[ix];
+				if (!entry.occupied)
+					continue;
+
+				GUIAttachTextEntry(camera, entry);
+				entry.flag |= DrawFlag.DrawnGizmo;
+			}
+
 			UnityEditor.Handles.EndGUI();
 
 			return;
