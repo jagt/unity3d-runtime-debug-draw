@@ -665,6 +665,9 @@ namespace RuntimeDebugDraw.Internal
 
 		public void RegisterAttachText(Transform target, Func<string> strFunc, Vector3 offset, Color color, int size)
 		{
+			if(_attachTextEntries == null)
+				return;
+		
 			AttachTextEntry entry = null;
 			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
 			{
