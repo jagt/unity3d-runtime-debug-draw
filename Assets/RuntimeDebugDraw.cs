@@ -308,21 +308,27 @@ namespace RuntimeDebugDraw
 		/// <summary>
 		/// Check and build 
 		/// </summary>
+		private static string HIDDEN_GO_NAME = "________HIDDEN_C4F6A87F298241078E21C0D7C1D87A76_";
 		private static void CheckAndBuildHiddenRTDrawObject()
 		{
-			if (_rtDraw == null)
-			{
-				//	instantiate an hidden gameobject w/ RuntimeDebugDraw attached.
-				//	hardcode an GUID in the name so one won't accidentally get this by name.
-				var go = new GameObject("________HIDDEN_C4F6A87F298241078E21C0D7C1D87A76_");
-				var childGo = new GameObject("________HIDDEN_9D08E9B9785041CD863FF172480C31B2_");
-				childGo.transform.parent = go.transform;
-				_rtDraw = childGo.AddComponent<RuntimeDebugDraw.Internal.RuntimeDebugDraw>();
-				//	hack to only hide outer go, so that RuntimeDebugDraw's OnGizmos will work properly.
-				go.hideFlags = HideFlags.HideInHierarchy;
-				if(Application.isPlaying)
-					GameObject.DontDestroyOnLoad(go);
-			}
+			if (_rtDraw != null)
+				return;
+
+			//	try reuse existing one first
+			_rtDraw =  GameObject.FindObjectOfType<RuntimeDebugDraw.Internal.RuntimeDebugDraw>();
+			if (_rtDraw != null)
+				return;
+
+			//	instantiate an hidden gameobject w/ RuntimeDebugDraw attached.
+			//	hardcode an GUID in the name so one won't accidentally get this by name.
+			var go = new GameObject(HIDDEN_GO_NAME);
+			var childGo = new GameObject(HIDDEN_GO_NAME);
+			childGo.transform.parent = go.transform;
+			_rtDraw = childGo.AddComponent<RuntimeDebugDraw.Internal.RuntimeDebugDraw>();
+			//	hack to only hide outer go, so that RuntimeDebugDraw's OnGizmos will work properly.
+			go.hideFlags = HideFlags.HideAndDontSave;
+			if (Application.isPlaying)
+				GameObject.DontDestroyOnLoad(go);
 
 			return;
 		}
@@ -360,16 +366,29 @@ namespace RuntimeDebugDraw.Internal
 	internal class RuntimeDebugDraw : MonoBehaviour
 	{
 		#region Basics
+		private void CheckInitialized()
+		{
+			//	as RuntimeDebugDraw component has a very low execution order, other script might Awake()
+			//	earlier than this and at that moment it's not initialized. check and init on every public
+			//	member
+			if (_drawTextEntries == null)
+			{
+				_ZTestBatch = new BatchedLineDraw(depthTest: true);
+				_AlwaysBatch = new BatchedLineDraw(depthTest: false);
+				_lineEntries = new List<DrawLineEntry>(16);
+
+				_textStyle = new GUIStyle();
+				_textStyle.alignment = TextAnchor.UpperLeft;
+				_drawTextEntries = new List<DrawTextEntry>(16);
+				_attachTextEntries = new List<AttachTextEntry>(16);
+			}
+
+			return;
+		}
+
 		private void Awake()
 		{
-			_ZTestBatch = new BatchedLineDraw(depthTest: true);
-			_AlwaysBatch = new BatchedLineDraw(depthTest: false);
-			_lineEntries = new List<DrawLineEntry>(16);
-
-			_textStyle = new GUIStyle();
-			_textStyle.alignment = TextAnchor.UpperLeft;
-			_drawTextEntries = new List<DrawTextEntry>(16);
-			_attachTextEntries = new List<AttachTextEntry>(16);
+			CheckInitialized();
 
 			return;
 		}
@@ -390,7 +409,7 @@ namespace RuntimeDebugDraw.Internal
 		}
 #endif
 
-		public void LateUpdate()
+		private void LateUpdate()
 		{
 			TickAndDrawLines();
 			TickTexts();
@@ -402,6 +421,15 @@ namespace RuntimeDebugDraw.Internal
 		{
 			_AlwaysBatch.Dispose();
 			_ZTestBatch.Dispose();
+
+			return;
+		}
+
+		private void Clear()
+		{
+			_drawTextEntries.Clear();
+			_lineEntries.Clear();
+			_linesNeedRebuild = true;
 
 			return;
 		}
@@ -483,8 +511,10 @@ namespace RuntimeDebugDraw.Internal
 
 			public void Dispose()
 			{
-				GameObject.Destroy(mesh);
-				GameObject.Destroy(mat);
+				GameObject.DestroyImmediate(mesh);
+				GameObject.DestroyImmediate(mat);
+
+				return;
 			}
 		}
 
@@ -494,9 +524,8 @@ namespace RuntimeDebugDraw.Internal
 
 		public void RegisterLine(Vector3 start, Vector3 end, Color color, float timer, bool noZTest)
 		{
-			if(_lineEntries == null)
-				return;
-		
+			CheckInitialized();
+
 			DrawLineEntry entry = null;
 			for (int ix = 0; ix < _lineEntries.Count; ix++)
 			{
@@ -635,6 +664,8 @@ namespace RuntimeDebugDraw.Internal
 
 		public void RegisterDrawText(Vector3 anchor, string text, Color color, int size, float timer, bool popUp)
 		{
+			CheckInitialized();
+
 			DrawTextEntry entry = null;
 			for (int ix = 0; ix < _drawTextEntries.Count; ix++)
 			{
@@ -669,8 +700,7 @@ namespace RuntimeDebugDraw.Internal
 
 		public void RegisterAttachText(Transform target, Func<string> strFunc, Vector3 offset, Color color, int size)
 		{
-			if(_attachTextEntries == null)
-				return;
+			CheckInitialized();
 		
 			AttachTextEntry entry = null;
 			for (int ix = 0; ix < _attachTextEntries.Count; ix++)
@@ -821,9 +851,6 @@ namespace RuntimeDebugDraw.Internal
 #if UNITY_EDITOR
 		private void DrawTextOnDrawGizmos()
 		{
-			if (_drawTextEntries == null || _attachTextEntries == null)
-				return;
-		
 			if (!(Camera.current == Draw.GetDebugDrawCamera()
 				|| Camera.current == UnityEditor.SceneView.lastActiveSceneView.camera))
 				return;
