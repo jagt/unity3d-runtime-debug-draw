@@ -320,7 +320,8 @@ namespace RuntimeDebugDraw
 				_rtDraw = childGo.AddComponent<RuntimeDebugDraw.Internal.RuntimeDebugDraw>();
 				//	hack to only hide outer go, so that RuntimeDebugDraw's OnGizmos will work properly.
 				go.hideFlags = HideFlags.HideInHierarchy;
-				GameObject.DontDestroyOnLoad(go);
+				if(Application.isPlaying)
+					GameObject.DontDestroyOnLoad(go);
 			}
 
 			return;
@@ -493,6 +494,9 @@ namespace RuntimeDebugDraw.Internal
 
 		public void RegisterLine(Vector3 start, Vector3 end, Color color, float timer, bool noZTest)
 		{
+			if(_lineEntries == null)
+				return;
+		
 			DrawLineEntry entry = null;
 			for (int ix = 0; ix < _lineEntries.Count; ix++)
 			{
@@ -817,6 +821,9 @@ namespace RuntimeDebugDraw.Internal
 #if UNITY_EDITOR
 		private void DrawTextOnDrawGizmos()
 		{
+			if (_drawTextEntries == null || _attachTextEntries == null)
+				return;
+		
 			if (!(Camera.current == Draw.GetDebugDrawCamera()
 				|| Camera.current == UnityEditor.SceneView.lastActiveSceneView.camera))
 				return;
