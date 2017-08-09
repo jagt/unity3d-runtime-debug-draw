@@ -31,4 +31,5 @@ sysinfo.txt
 *.unitypackage
 
 # For this, ignore ProjectSettings is ok
-/[Pp]rojectSettings/
+/[Pp]rojectSettings/*
+!/[Pp]rojectSettings/ProjectSettings.asset
