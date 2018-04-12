@@ -71,15 +71,59 @@ namespace RuntimeDebugDraw
 			return;
 		}
 
-		/// <summary>
-		/// Draws a line from start to start + dir in world coordinates.
-		/// </summary>
-		/// <param name="start">Point in world space where the ray should start.</param>
-		/// <param name="dir">Direction and length of the ray.</param>
-		/// <param name="color">Color of the drawn line.</param>
-		/// <param name="duration">How long the line will be visible for (in seconds).</param>
-		/// <param name="depthTest">Should the line be obscured by other objects closer to the camera?</param>
-		[Conditional("_DEBUG")]
+        /// <summary>
+        /// Draws a top-down circle of a given radius at the world coordinates.
+        /// </summary>
+        /// <param name="center">The world coordinates for the center of the circle.</param>
+        /// <param name="radius">The radius (in units) of the circle.</param>
+        /// <param name="color">The color of the circle.</param>
+        /// <param name="angleFov">The angle of the circle.</param>
+        /// <param name="forwardDir">The forward direction of the circle. Necessary if the angle is less than 360 for showing FOV cone type information.</param>
+        /// <param name="duration">How long the line will be visible for (in seconds).</param>
+        /// <param name="depthTest">Should the line be obscured by other objects closer to the camera?</param>
+        [Conditional("_DEBUG")]
+        public static void DrawCircle(Vector3 center, float radius, Color color, float duration, bool depthTest, Vector3 forwardDir, float angleFov)
+        {
+            CheckAndBuildHiddenRTDrawObject();
+
+            const int numSegments = 32;
+
+            float fwdDir = Mathf.Atan2(forwardDir.z, forwardDir.x);
+            float startRad = fwdDir - angleFov / 2 * Mathf.Deg2Rad;
+            float endRad = fwdDir + angleFov / 2 * Mathf.Deg2Rad;
+            float thetaRad = (endRad - startRad) / numSegments;
+
+            List<Vector3> nodes = new List<Vector3> { center };
+
+            int i = 0;
+            for (float curRadians = startRad; i < numSegments + 1; curRadians += thetaRad)
+            {
+                Vector3 coordinate = new Vector3(
+                    Mathf.Cos(curRadians) * radius + center.x,
+                    Mathf.Sin(curRadians) * radius + center.z,
+                    center.y);
+
+                nodes.Add(new Vector3(coordinate.x, coordinate.z, coordinate.y));
+                i++;
+            }
+
+            nodes.Add(center);
+
+            for (i = 1; i < nodes.Count; i++)
+            {
+                _rtDraw.RegisterLine(nodes[i - 1], nodes[i], color, duration, !depthTest);
+            }
+        }
+
+        /// <summary>
+        /// Draws a line from start to start + dir in world coordinates.
+        /// </summary>
+        /// <param name="start">Point in world space where the ray should start.</param>
+        /// <param name="dir">Direction and length of the ray.</param>
+        /// <param name="color">Color of the drawn line.</param>
+        /// <param name="duration">How long the line will be visible for (in seconds).</param>
+        /// <param name="depthTest">Should the line be obscured by other objects closer to the camera?</param>
+        [Conditional("_DEBUG")]
 		public static void DrawRay(Vector3 start, Vector3 dir, Color color, float duration, bool depthTest)
 		{
 			CheckAndBuildHiddenRTDrawObject();
@@ -166,12 +210,25 @@ namespace RuntimeDebugDraw
 			return;
 		}
 
-		/// <summary>
-		/// Draws a line from start to start + dir in world coordinates.
-		/// </summary>
-		/// <param name="start">Point in world space where the ray should start.</param>
-		/// <param name="dir">Direction and length of the ray.</param>
-		[Conditional("_DEBUG")]
+	    /// <summary>
+	    /// Draws a top-down circle of a given radius at the world coordinates.
+	    /// </summary>
+	    /// <param name="center">The world coordinates for the center of the circle.</param>
+	    /// <param name="radius">The radius (in units) of the circle.</param>
+	    /// <param name="color">The color of the circle.</param>
+	    /// <param name="duration">How long the line will be visible for (in seconds).</param>
+	    [Conditional("_DEBUG")]
+	    public static void DrawCircle(Vector3 center, float radius, Color color, float duration)
+	    {
+	        DrawCircle(center, radius, color, duration, false, Vector3.forward, 360);
+	    }
+
+        /// <summary>
+        /// Draws a line from start to start + dir in world coordinates.
+        /// </summary>
+        /// <param name="start">Point in world space where the ray should start.</param>
+        /// <param name="dir">Direction and length of the ray.</param>
+        [Conditional("_DEBUG")]
 		public static void DrawRay(Vector3 start, Vector3 dir)
 		{
 			DrawRay(start, dir, DrawDefaultColor, 0f, true);
