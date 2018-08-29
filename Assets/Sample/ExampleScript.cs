@@ -33,6 +33,8 @@ public class ExampleScript : MonoBehaviour
 
 		Draw.AttachText(transform, () => transform.position.y.ToString(), Vector3.up, Color.white, 12);
 
+		Draw.DrawBitmapText(Vector3.zero, "hello?", Color.white, 12, 1, true);
+
 		return;
 	}
 
