@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using RuntimeDebugDraw.Internal;
@@ -793,7 +793,7 @@ namespace RuntimeDebugDraw.Internal
 				if (!entry.occupied)
 					continue;
 
-				GUIDrawTextEntry(camera, entry);
+				GUIDrawTextEntry(camera, entry, isSceneCam: false);
 				entry.flag |= DrawFlag.DrawnGUI;
 			}
 
@@ -803,18 +803,17 @@ namespace RuntimeDebugDraw.Internal
 				if (!entry.occupied)
 					continue;
 
-				GUIAttachTextEntry(camera, entry);
+				GUIAttachTextEntry(camera, entry, isSceneCam: false);
 				entry.flag |= DrawFlag.DrawnGUI;
 			}
 
 			return;
 		}
 
-		private void GUIDrawTextEntry(Camera camera, DrawTextEntry entry)
+		private void GUIDrawTextEntry(Camera camera, DrawTextEntry entry, bool isSceneCam)
 		{
 			Vector3 worldPos = entry.anchor;
-			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
-			screenPos.y = Screen.height - screenPos.y;
+			Vector3 screenPos = GetCameraScreenPos(camera, worldPos, isSceneCam);
 
 			if (entry.popUp)
 			{
@@ -830,14 +829,13 @@ namespace RuntimeDebugDraw.Internal
 			return;
 		}
 
-		private void GUIAttachTextEntry(Camera camera, AttachTextEntry entry)
+		private void GUIAttachTextEntry(Camera camera, AttachTextEntry entry, bool isSceneCam)
 		{
 			if (entry.transform == null)
 				return;
 
 			Vector3 worldPos = entry.transform.position + entry.offset;
-			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
-			screenPos.y = Screen.height - screenPos.y;
+			Vector3 screenPos = GetCameraScreenPos(camera, worldPos, isSceneCam);
 
 			_textStyle.normal.textColor = entry.color;
 			_textStyle.fontSize = entry.size;
@@ -866,7 +864,7 @@ namespace RuntimeDebugDraw.Internal
 				if (!entry.occupied)
 					continue;
 
-				GUIDrawTextEntry(camera, entry);
+				GUIDrawTextEntry(camera, entry, isSceneCam: true);
 				entry.flag |= DrawFlag.DrawnGizmo;
 			}
 
@@ -876,7 +874,7 @@ namespace RuntimeDebugDraw.Internal
 				if (!entry.occupied)
 					continue;
 
-				GUIAttachTextEntry(camera, entry);
+				GUIAttachTextEntry(camera, entry, isSceneCam: true);
 				entry.flag |= DrawFlag.DrawnGizmo;
 			}
 
@@ -885,7 +883,23 @@ namespace RuntimeDebugDraw.Internal
 			return;
 		}
 #endif
+
+		private Vector3 GetCameraScreenPos(Camera camera, Vector3 worldPos, bool isSceneCam)
+		{
+			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
+			screenPos.y = Screen.height - screenPos.y;
+
+#if UNITY_EDITOR
+			if(isSceneCam)
+			{
+				float appScale = Screen.dpi == 0 ? 1 : Screen.dpi / 96;
+				screenPos /= appScale;
+				screenPos.y -= 40;
+			}
+#endif
+
+			return screenPos;
+		}
 		#endregion
 	}
 }
-
