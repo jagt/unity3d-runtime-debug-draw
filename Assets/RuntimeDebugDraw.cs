@@ -390,6 +390,9 @@ namespace RuntimeDebugDraw.Internal
 		{
 			CheckInitialized();
 
+#if UNITY_EDITOR && UNITY_2017_4_OR_NEWER
+			UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+#endif
 			return;
 		}
 
@@ -422,6 +425,9 @@ namespace RuntimeDebugDraw.Internal
 			_AlwaysBatch.Dispose();
 			_ZTestBatch.Dispose();
 
+#if UNITY_EDITOR && UNITY_2017_4_OR_NEWER
+			UnityEditor.EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+#endif
 			return;
 		}
 
@@ -433,6 +439,17 @@ namespace RuntimeDebugDraw.Internal
 
 			return;
 		}
+		
+#if UNITY_EDITOR && UNITY_2017_4_OR_NEWER
+		private void OnPlayModeStateChanged(UnityEditor.PlayModeStateChange playMode)
+		{
+			if (playMode == UnityEditor.PlayModeStateChange.ExitingPlayMode)
+			{
+				// hack to avoid 'Can't destroy Transform component' error due to parent hide flags.
+				transform.parent = null;
+			}
+		}
+#endif
 		#endregion
 
 		#region Draw Lines
