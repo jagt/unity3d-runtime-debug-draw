@@ -813,6 +813,11 @@ namespace RuntimeDebugDraw.Internal
 		private void GUIDrawTextEntry(Camera camera, DrawTextEntry entry)
 		{
 			Vector3 worldPos = entry.anchor;
+			Vector3 heading = worldPos - camera.transform.position;
+			if (Vector3.Dot(camera.transform.forward, heading) <= camera.nearClipPlane)
+			{
+				return;
+			}
 			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
 			screenPos.y = Screen.height - screenPos.y;
 
@@ -836,6 +841,11 @@ namespace RuntimeDebugDraw.Internal
 				return;
 
 			Vector3 worldPos = entry.transform.position + entry.offset;
+			Vector3 heading = worldPos - camera.transform.position;
+			if (Vector3.Dot(camera.transform.forward, heading) <= camera.nearClipPlane)
+			{
+				return;
+			}
 			Vector3 screenPos = camera.WorldToScreenPoint(worldPos);
 			screenPos.y = Screen.height - screenPos.y;
 
